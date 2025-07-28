@@ -1,0 +1,22 @@
+version: 0.0
+os: linux
+files:
+   - source: /app
+     destination: /var/www/test/csv2_ai_analysis/
+permissions:
+   - object: /var/www/test/csv2_ai_analysis/
+     pattern: "**"
+     owner: root
+     group: root
+     mode: 755
+     type:
+       - file
+hooks:
+   BeforeInstall:
+    - location: script/installapache.sh
+      runas: root
+   AfterInstall:
+    - location: script/restartapache.sh
+      runas: root
+    - location: script/startapache.sh
+      runas: root
