@@ -53,7 +53,8 @@ This repository provides an AI-powered PDF analysis and chat service built with 
 flowchart LR
   Client[Client (browser)]
 
-  subgraph SummarizeFlow [PDF Summarization]
+  subgraph SummarizeFlow
+    %% PDF Summarization
     Client -->|WebSocket /summarize/{product_id}| WebsocketSumm[WebSocket Server]
     WebsocketSumm --> DB[Database: summaries]
     DB -->|exists?| WebsocketSumm
@@ -63,7 +64,8 @@ flowchart LR
     Summarizer --> WebsocketSumm
   end
 
-  subgraph ChatFlow [Interactive Chat / Q&A]
+  subgraph ChatFlow
+    %% Interactive Chat / Q&A
     Client -->|WebSocket /recieve-msg/{user_id}/{product_id}| WebsocketChat[WebSocket Server]
     WebsocketChat -->|receive question| ChatModule[Chat Module (modules/chat_module)]
     ChatModule -->|uses| Chroma[Chroma Vector Store]
