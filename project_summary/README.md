@@ -50,37 +50,61 @@ This repository provides an AI-powered PDF analysis and chat service built with 
 
 ## Mermaid Flowchart
 ```mermaid
-flowchart LR
-  Client[Client (browser)]
-
-  subgraph SummarizeFlow
-    %% PDF Summarization
-    Client -->|WebSocket /summarize/{product_id}| WebsocketSumm[WebSocket Server]
-    WebsocketSumm --> DB[Database: summaries]
-    DB -->|exists?| WebsocketSumm
-    WebsocketSumm -->|fetch PDF| FileSys[Local PDF storage]
-    FileSys --> Summarizer[Summarize Service (modules/summarize_pdf)]
-    Summarizer --> DB
-    Summarizer --> WebsocketSumm
+flowchart TD
+  Client["Client Browser"]
+  
+  subgraph Summarize["PDF Summarization Flow"]
+    WS1["WebSocket Endpoint"]
+    DBCheck["Check DB Cache"]
+    GetPDF["Fetch PDF File"]
+    LLMSum["LLM Summarization"]
+    DBStore["Store in DB"]
+    SendSum["Send to Client"]
   end
-
-  subgraph ChatFlow
-    %% Interactive Chat / Q&A
-    Client -->|WebSocket /recieve-msg/{user_id}/{product_id}| WebsocketChat[WebSocket Server]
-    WebsocketChat -->|receive question| ChatModule[Chat Module (modules/chat_module)]
-    ChatModule -->|uses| Chroma[Chroma Vector Store]
-    Chroma -->|persist/restore| S3[S3 Embedding Storage]
-    ChatModule -->|calls| LLM[LLM (utils.constants.LLM)]
-    ChatModule -->|produce| KafkaProducer[Kafka Producer]
-    KafkaProducer --> KafkaTopic[Kafka Topic]
-    KafkaTopic -->|consume| KafkaConsumer[Kafka Consumer (modules/consume_message)]
-    KafkaConsumer --> WebsocketChat
-    ChatModule --> DB
-    ChatModule --> Redis[Redis (cache)]
+  
+  subgraph Chat["Interactive Chat Flow"]
+    WS2["WebSocket Endpoint"]
+    RecvQ["Receive Question"]
+    ChromaVec["Chroma Vector Store"]
+    S3Store["S3 Backup"]
+    LLMChat["LLM Answer Generation"]
+    KafkaProd["Kafka Producer"]
+    KafkaTop["Kafka Topic"]
+    KafkaCons["Kafka Consumer"]
+    SendChat["Send to Client"]
   end
-
-  style SummarizeFlow fill:#f9f,stroke:#333,stroke-width:1px
-  style ChatFlow fill:#ff9,stroke:#333,stroke-width:1px
+  
+  Cache["Redis Cache"]
+  Database["Database"]
+  PDF["PDF Storage"]
+  
+  Client -->|summarize| WS1
+  WS1 --> DBCheck
+  DBCheck -->|found| SendSum
+  DBCheck -->|not found| GetPDF
+  GetPDF --> PDF
+  PDF --> LLMSum
+  LLMSum --> DBStore
+  DBStore --> SendSum
+  SendSum --> Client
+  
+  Client -->|ask question| WS2
+  WS2 --> RecvQ
+  RecvQ --> ChromaVec
+  ChromaVec --> S3Store
+  RecvQ --> Cache
+  RecvQ --> LLMChat
+  LLMChat --> KafkaProd
+  KafkaProd --> KafkaTop
+  KafkaTop --> KafkaCons
+  KafkaCons --> SendChat
+  SendChat --> WS2
+  WS2 --> Client
+  
+  Database -.->|cache layer| Cache
+  
+  style Summarize fill:#f9f,stroke:#333,stroke-width:2px
+  style Chat fill:#ff9,stroke:#333,stroke-width:2px
 ```
 
 ## Files Created
